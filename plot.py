@@ -13,33 +13,9 @@ OAUTH_KEYS = {'consumer_key':ckey, 'consumer_secret':csecret,'access_token_key':
 auth = tweepy.OAuthHandler(OAUTH_KEYS['consumer_key'], OAUTH_KEYS['consumer_secret'])
 api = tweepy.API(auth,wait_on_rate_limit=True)
 
-def count_term(term,arr):
-    times = 0
-    HashTweets = tweepy.Cursor(api.search, q="#"+term).items(10)
-    hlist =[tweet for tweet in HashTweets]
-    #contar veces que aparece el termino en el array
-    for i in hlist:
-        txt = i.text
-        sh =  re.findall(r"#(\w+)", txt[0:len(txt)])
-        for h in sh:
-            if h == term:times+=1
-    return times, len(hlist)
-
-def count_terms(tweets,previous):
-    times = {}
-    hashs = []
-    for i in tweets:
-        txt = i.text
-        sh =  re.findall(r"#(\w+)", txt[0:len(txt)])
-        for h in sh:
-            times[h]=times[h]+1 if h in times.keys() else 1
-            if not (h in previous): 
-                hashs.append(h)
-    return times, hashs
-
 def main():
     # Opening JSON file
-    f = open('dump.json')
+    f = open('argentinaplot/dump.json')
     
     data = json.load(f)
     
@@ -52,22 +28,27 @@ def main():
     # Iterating through the json
     tweet_list = []
     for i in data['hash-dump']:
-        print("hash"+i)
-        HashTweets = tweepy.Cursor(api.search, q="#"+i).items(30)
-        tweet_list.append([tweet for tweet in HashTweets])
+        HashTweets = tweepy.Cursor(api.search, q="#"+i).items(40)
+        locations = []
+        for x in HashTweets:
+            l = x.user.location
+            if ((l not in locations) and len(l)>0 ) : locations.append(l)
+        count = 0
+        for x in locations:
+            x.lower()
+            arg = False
+            for y in data["locations"]:
+                if (arg == True) : 
+                    break
+                y.lower()
+                if(x.find(y)!=-1):arg = True
+            if (arg == True) : count += 1
+        if(count == 0 or len(locations) == 0):continue
+        fidelity = count/len(locations);
+        if(fidelity > 0.5):exp.append(i)
     
-    for ind in range(len(tweet_list)):
-        #buscar todos los hashtags que son derivados de un hashtag base
-        times, hashs = count_terms(tweet_list[ind],{x for x in data["hash-dump"] or x in exp or x in data["past"]})
-        #sumar a la lista final los que tienen coeficiente de Jaccard mayor a 0.005
-        for h in hashs:
-            timesi,size = count_term(h,data["hash-dump"][ind])
-            if((times[h]+timesi*3)/(len(tweet_list[ind])+size*3) >= 0.1 and not (h in exp)):exp.append(h)
-
-    
-    data["past"].extend(data["hash-dump"])
     data["hash-dump"]=exp
-    with open('dump.json', 'w') as outfile:
-        json.dump(data, outfile)
+    with open('argentinaplot/dump.json', 'w') as outfile:
+        json.dump(data, outfile, ensure_ascii=False)
 
 main()
