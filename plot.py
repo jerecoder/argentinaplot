@@ -3,91 +3,39 @@ import tweepy
 import json
 import re
 import time
-
-ckey = "KnMSUuHkEC9fERQCNXnmd2WIj"
-csecret = "n2ZBXrwJUY4OX8JRTCK5UePx5aWxpLmXp2ZDo1SN9RjlUIzwQl"
-atoken = "1397193652515000333-mVNPIznXubMVtuIhoPBJv53bEzD3EE"
-asecret = "1uONP3Olkn3hIfgsdXjA87c5fJsqYKlwzZSs9VffBKlXs"
-
-OAUTH_KEYS = {'consumer_key':ckey, 'consumer_secret':csecret,'access_token_key':atoken, 'access_token_secret':asecret}
-auth = tweepy.OAuthHandler(OAUTH_KEYS['consumer_key'], OAUTH_KEYS['consumer_secret'])
-api = tweepy.API(auth,wait_on_rate_limit=True)
-
-def count_term(term,arr):
-    times = 0
-    HashTweets = tweepy.Cursor(api.search, q="#"+term).items(10)
-    hlist =[tweet for tweet in HashTweets]
-    #contar veces que aparece el termino en el array
-    for i in hlist:
-        txt = i.text
-        sh =  re.findall(r"#(\w+)", txt[0:len(txt)])
-        for h in sh:
-            if h == term:times+=1
-    return times, len(hlist)
-
-def count_terms(tweets,previous):
-    times = {}
-    hashs = []
-    for i in tweets:
-        txt = i.text
-        sh =  re.findall(r"#(\w+)", txt[0:len(txt)])
-        for h in sh:
-            times[h]=times[h]+1 if h in times.keys() else 1
-            if not (h in previous): 
-                hashs.append(h)
-    return times, hashs
+import csv
 
 def main():
+    header = ['name','']
+    terms = ["Bolivia", "MacriGolpista", "Brazil", "FueGolpe", "SantaFe", "LaSantaFeQueQueremos", "Rosario", "ContrabandoPRO", "HabraConsecuencias", "Navarro2023", "Larretalandia", "Munro", "EstadoPresente", "ProvinciadeBuenosAires", "DesarrollandoLíderesParaUnMundoCambiante", "Líderes", "GeneralBelgrano", "provinciadebuenosaires", "sanantoniodeareco", "VarianteDelta", "COVID19", "vacunación", "VamosConVos", "VamosConVosEscobar", "FdT", "AHORA", "MinisterioDeSalud", "ComienzaLaVacunación", "FranjaDe12A17Años", "ConRiesgo", "lluvia", "BuenosAires", "Lapampa", "Cordoba", "EntreRios", "Foreca", "Domingo", "Pronosticos", "forecast", "Lluvias", "Tormentas", "BahiaBlanca", "ParqueLuro", "FueroCivil", "ParqueDeLaPrehistoria", "UNLPam", "Educación", "Telegram", "Argentina", "NOMIVAC", "EraEn2019", "Evita", "Frecuencia", "semana", "Infobae", "jefe", "EnfermaMental", "Pero", "BuenosAiresVacunate", "Bue", "JuegosOlímpicos", "LasLeonas", "ARG", "Hockey", "Olympics", "Tokyo2020", "Tokio2020", "Leonas", "VamosLeonas", "Canotaje", "EquipoARG", "JuegosOlimpicos", "JJOO", "ArgentinaEnTokio2020", "CanotajeVelocidad", "Quilmes", "MardelPlata", "Peñarol", "Municipalidad", "INDEPENDIENTE", "AVELLANEDA", "RACING", "Vill", "Ep49", "SinJusticia", "2DeAgosto", "Lealtad", "Perotti", "CFK", "RichardCarapaz", "NeisiDajomes", "TamaraSalazar", "ElDiarioDeportes", "Tokio", "JusticiaPorSandraYRuben", "Ahora", "2deagosto", "Justicia", "CA", "California", "Atención", "bultodemacho", "worldwide", "Colombia", "SinApoyo", "PASO", "RecuperandoEsperanzas", "Ambito", "obra", "cuotas", "SusanaGimenez", "Argenzuela", "GustavoSylvestre", "JuntosXCargo", "Pichetto", "Negri", "Ritondo", "GolpeDeEstado", "NuncaMas", "PerdonBolivia", "Losescenarioscambian", "Liberales", "Libertarios", "PrensadelOdio", "C5N", "pitoduro", "pelotudos", "GolpeDeEstadoEnBolivia", "BuenLunes", "NoTeExtrañamosQuedateNomas", "HabraConsecuen", "FelizLunes", "FelizLunesATodos", "habra", "BuenaSemana", "VacunaLibre", "PASO2021", "CABA", "Infraestructura", "gardel", "severinoelmate", "mate", "Provincia", "Gobierno", "kicillof", "gobiernodecientificos", "impresentables", "Política", "FernandoAstudilloCastro", "Tucumán", "ioma", "SOSCuba", "CubaLibre", "MaximoKirchner", "Nestorkirchner", "albertofernandez", "CristinaKirchner", "Bianco", "kirchnerismo", "AlbertoFernandez", "ElDestapeRadio", "ElPeorGobiernoDeLaHistoria", "GobiernoCriminalyCorrupto", "GobiernoGenocida", "PBA", "Criminal", "coronavirus", "pobreza", "cristina", "LaPlata", "TresDeFebrero", "TresLomas", "25DeMayo", "bici", "rio", "Hyundai", "BurnsHyundai", "Bomberos", "foodpron", "sopapillas", "Metepec", "Toluca", "Demo", "santafeavanza", "SantaFeDePie", "Viviendas", "HayVacunaHayFuturo", "ArgentinaVa", "SantaFeVacunaYTeCuida", "SeguimosVacunando", "VacunasParaTodos", "VacunarVacunarVacunar", "ArgentinaTeCuida", "YoMeVacuno", "EstamosSaliendo", "SantaFeMás", "SanJorge", "Vacunas", "exrural", "Ramona", "BarredoConcejal", "StaFe", "ColegioSanJosé", "ultimas24", "carolinadelnorte", "s", "COTIZACION", "DIVISAS", "BANCO", "CASILDA", "HARINAS", "rosario", "sanlor", "Elecciones2021", "Seguridad", "Meteorológico", "Nacional", "Mujeres", "Intendentes", "JuanAndreotti", "LeonardoNardini", "apoyo", "PuertoMadryn", "ImagenPositiva", "Sanitario", "CHACO", "NoticiasDelParana", "Zacapoaxtla", "InfoRED92", "Candidatos", "Transición", "Palena", "LLanquihue", "Preparació", "Santander", "Prepar", "onlyfans", "onlyfanspromo_Rt", "Rionegro", "ATENCION", "Entrevista", "Osorno", "Ole", "AEstaHora", "OleManoComunicaciones", "peaje", "pymes", "Alemania", "Preparación", "VacundadosVip", "OlivoGate", "China", "SinTas", "bikeride", "cycling", "Chile", "SantiagoMaldonado", "Acompañamiento", "Ecuador", "Paraguay", "RepúblicaDominicana", "Maradona", "Barcelona", "Rettro", "DiegoEterno", "DiegoMaradona", "Retro", "football", "Clásico", "Uruguay", "Agosto", "LaPampa", "FerroDePico", "SumáMinutos", "Salud", "Coronavirus", "Prevención", "CEW", "Cultura", "ViviendasSociales", "EduardoCastex", "Lonquimay", "GeneralSanMartin", "ContinúanEscriturando", "viviendas", "Vacunación", "Patagonia", "Neuquén", "Elecciones", "LaCocinadelasNoticias", "CierreDeListas", "IdoneidadMoralpara", "Noticias", "ElObjetivoCba", "CambiaCatamarca", "PRO", "InfectaduraK", "Internas", "Presidente2023", "Encuesta", "lapeteradelpresidente", "MaxiPullaroSenador", "GabrielChumpitazDiputado", "AnahiShilbelbeinConcejal", "LoQueHayQueTener", "Evolucion", "Juntos", "Cambiemos", "EsAhora", "PresidenciaDeLaNacion", "EntreRíos", "HidrovíaParaguayParaná", "DarElPaso", "NuevaFotoDePerfil", "Mza", "Mendoza", "logramos", "viene", "CostaRica", "UCRC2021", "evolució", "La990", "JuntosPorChacabuco", "ucrchacabuco", "comitealem", "Córdoba", "licencia", "Sanidad", "paritaria", "conflicto", "cargamento", "segundo", "SantaCruz", "ATE", "ElChaltón", "decreto", "Formosa", "oposición", "hastiados", "candidatura", "aDeMayo", "MesDeLa", "contramano", "Autovia18", "AlertasTransito", "Narcotráfico", "cdelu", "OroVerde", "LaRadioDelTránsito", "Corte", "Zapala", "CutralCo", "LasLajas", "VillaPehuenia", "RVSM", "Airbus", "A320", "LocosXlaRadio", "FOL", "CDNeu", "ChosMalal", "Senillosa", "FarmaciaDeTurno", "HOY", "running", "zonasur", "ParqueFinky", "SOCIEDAD", "Berazategui", "Agropecuario", "Atlanta", "AlmiranteBrown", "Tigre", "Gimnasia", "PrimeraNacional", "GimnasiaMza", "MitreSdE", "Belgrano", "Politica", "LaMatanza", "politica", "LomasDeZamora", "policiales", "economia", "Avellaneda", "Sociedad", "fdt", "precandidatos", "segnalazione", "Walmart", "CambiandoJuntos", "ATiempo", "UCR", "EL1", "SantiagoMaldonadoPresente", "juntos", "fantino", "bullrich", "meme", "memeargentinos", "politicaargentina", "paso", "Santilli", "Larreta", "Vidal", "Garro", "JxC", "Macri", "CaballeroDeDía", "Pfizer", "Peronismo", "peron", "nestorvive", "Agosto2021", "IglesiasMisogino", "PERONISMO", "lastre", "BastaAlberto", "LaPeteraDelPresidente", "Albertogatero", "RenunciaCafiero", "OlivosGate", "OLIVOSCABARET", "cienmil", "ElPeorPresidenteDeLaHistoria", "cambiemos", "machistas", "violentos", "JuntosPorElCambio", "Esquel", "Chubut", "PeronKirchnerismo", "DarioNieto", "peronismo", "liberales", "EleccionesArgentina", "mauriciomacri", "GestiónMacri", "JuntosParaConstruir", "LanataSinFiltro", "Hoy", "SeRobaronHastaLasVacunas", "TODOSDelinkuentes", "AbranLasAulas", "INFECTADURA", "SeRobaronLasVacunas", "EleccionesPASO", "GobiernoDeLaMuerte", "FernandezCordoba", "vacunatoriovip", "RechazaronMILLONESDeVacu", "BandaDeDelinkuentes", "GobiernoDeInutiles", "AlbertoEsHambre", "Oligarka", "TODESDelinkuentes", "FranciscoCagon", "AlbertoCagon", "SiguenRobandoVacunas", "FormosaEjemploDeDictadura", "Massa", "9JPorLaRepublica", "9JTodosALasCalles", "RechazaronMILLONESDeVacunas", "HicieronMierdaElPais", "Alberso", "Fiambrola", "Misioneras", "NYP", "ArgentinaUnida", "VACACIONESINVIERNO", "BuscamosATobias", "PrestanosTusOjos", "DNUInconstitucional", "AbranLasEscuelas", "GobiernoDeLaMentira", "SputnikV", "SeRobaronHast", "LloroPorTiArgentina", "Perdón", "alverso", "BuenJueves", "AbranLasEscuelasYa", "NosVeranVolverPronto", "DiaDeLaBandera", "DesastreNacional", "Suiza", "Ramos", "Helvetic", "BuenMartes", "EllosMillonarios", "BuenMiercoles", "MercadoCentral", "SocialismoOligarka", "SocialismoEsMiseria", "RutaDelDineroK", "Infectadura", "LaPeorVicepresidenteDeLaHistoria", "SeVaAAcaba", "alcanzar", "UC", "nuestrofuturoesjuntos", "FacundoManes", "Rauch", "VistaAlegre", "LetraA", "ListaAzulMPN", "UnaDosisDeIdentidad", "ElMejorEncuentro", "GerardoMoralesNazi", "Jujuy", "abranl", "fiestaclandestina", "puticlub", "QuedateEnCasa", "QueGobiernoDeMierda", "100Mi", "Gobie", "cienmilmuertos", "ArgentinaVacuna", "GraciasAlberto", "sputnikargentinaesvida", "AcaEstanLasVacunas", "SondeoDeImagen", "Oposición", "argentinosvarados", "ArgentinosvaradosEnElExteri", "DiaDeLaPachamama", "JulianaAwada", "julianaAwada", "Kloosterboer", "MauricioMacri", "Ahora30", "megamineria", "extractivismo", "EspionajeIlegal", "espionaje", "MarcosPeña", "URGENTE", "barrioalmirantebrown", "PrimeraA", "Barracas", "Hebraica", "Manes", "RodriguezLarreta", "cefnoticiasok", "InternaFeroz", "pococreible", "chanta", "Marulito", "Pepón", "prófugo", "detuvo", "entorpecer", "Celular", "Vera", "Protestas", "NoEsLoQueParece", "Entrevistas", "humor", "Almagro", "GBA", "Zoom", "trucha", "AportantesTruchos", "Policiales", "Video", "mercadolibre", "Martes", "Superclasico", "Brubank", "VamosArgentina", "NoTeDuermas", "DiaDelNiño", "SOSArgentina", "EraMacri", "MacriLoHizo", "LaPatriaEstaEnPeligro", "SegundoTiempo2023", "MartinTetaz", "MariaEugeniaVidal", "UnFuturoMejorEsPosible", "Bullrich", "Misiones", "SantaAna", "OlimpiadasTokio2020", "Bierzo", "RamonAlCongreso", "FrenteDeTodos", "Unidad", "elecciones", "MayoresControles", "JuntosEnCastilla", "SanJuan", "FaseCero", "ComodoroRivadavia", "Presidencial", "Noviembre", "elpais", "contador", "elcurrodelasfotomultas", "Perfil", "presidente", "Tandil", "Menem", "Alfonsin", "radicales", "AlguienEnElMundo", "BrancatelliPelotudo", "Assodibastoni", "AIRE", "EnCampaña", "JuntosxChaco", "TIERRADELFUEGO", "RioGrande", "activamos", "JuegosOlimpico", "JxCMisiones", "MartinArjol2021", "LOCALES", "escucharte", "GabyZapata2021", "EsElColoSantilli", "sanantoniodepadua", "Basta", "NSB", "mendoza", "photography", "streetphotography", "auto", "autos", "car", "industriaautomotriz", "usados", "Covid", "wineday2021", "EspacioArizu", "uterenlacasa", "djset", "ViviendaDigna", "AireNacional", "eventovirtual", "R", "argentina", "Lanalau", "Gestión", "RaícesMendoza", "UnPaisDeBuenaGente", "GameOver", "Promote9th_and11th_class", "aura", "SoloUnaVueltaMas", "TNCentral", "Voces", "MasRealidad", "AhPeroMacri", "FelizMiercoles", "MiercolesDeGanarSeguidores", "miercolesdenalgas", "Mierculos", "MiercolesIntratable", "ChanoCharpentier", "VivianaConVos", "ElDiarioDeLeuco", "BastaBaby", "e", "Aislamiento", "Actualidad", "SofíaPacchi", "ChieChanHong", "TN", "pandemia", "AxelKicillof", "Axel", "Nacionales", "Twitter", "lacampora", "LaNacion", "Argentinos", "regresoalpais", "Roma", "LaFrette", "CastilloFrancís", "DerechosHumanos", "L", "PfizerGate", "JuicioPoliticoYa", "TODESDelinkuentesDe4ta", "BuenSabado", "SOSVenezuela", "SOSNicaragua", "SOSArgentinaOtraDictaduraComunista", "cfkmemorandum", "cfkulpable", "RenunciaMorales", "renunciadonda", "renunciavizzotti", "VacunatoriosVIP"]
     # Opening JSON file
-    f = open('dump.json')
-    
-    data = json.load(f)
-    
-    #pro = data["pro"]
-    #op = data["op"]
-    
-    #export json
-    exp = []
-    
-    # Iterating through the json
-    tweet_list = []
-    it = 0
-    start = time.time()
-    for i in data['in']:
-        it+=1
-        now = time.time()
-        if(it%10 == 0):
-            print(it)
-            print("estimated time of competion " + str((((now-start)/it)*len(data['in'])-(now-start))/3600) + " hours")
-            with open('dump.json', 'w') as outfile:
-                json.dump(data, outfile)
-        t = []
-        try:
-            u = api.get_user(i)
-        except:
-            print(i)
-            continue
-        if(u.protected):
-            print(i)
-            continue
-        try:
-            t.append(i)
-            for status in tweepy.Cursor(api.user_timeline, id=i).items(20):
-                if hasattr(status, "entities"):
-                    entities = status.entities
-                    if "hashtags" in entities:
-                        for ent in entities["hashtags"]:
-                            if ent is not None:
-                                if "text" in ent:
-                                    hashtag = ent["text"]
-                                    if hashtag is not None:
-                                        t.append(hashtag)
-            data["hash"].append(t)
-        except:
-            print(i)
-            continue
+    with open('ds.csv','w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        with open('r.txt') as f:
+            for x in f.readlines():
+                for y in x.split('['):
+                    for z in y.split(']'):
+                        frec = {}
+                        tweets = z.split(",")
+                        for m in [n for n in tweets if n]:
+                            if(m in frec):
+                                frec[m]+=1
+                            else:
+                                frec[m]=1
+                            #print(m)
+                        res = []
+                        user = tweets[0].replace('"','')
+                        res.append(user)
+                        for val in frec.values():
+                            res.append(val)
+                        if(user != ""): writer.writerow(res)
+                    #for a in tweets[1:len(tweets)]:
+                      #  a.strip()
+                       # if(len(a)>1):
+                        #    u = 0
+                            #print("hash: "+ a + ' ' + str(len(a)))
 
-    with open('dump.json', 'w') as outfile:
-        json.dump(data, outfile)
+    #with open('dump.json', 'w') as outfile:
+    #   json.dump(data, outfile)
 
 main()
