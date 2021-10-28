@@ -50,35 +50,12 @@ def main():
         else:
             c+=1
             jxc.append(lis[f+c-1][0])
-    l_ftp = {}
-    l_jxc = {}
+    jxcf = open("jxc.txt","a")#append mode
+    fptf = open("fpt.txt","a")#append mode
     for x in fpt:
-        print(x)
-        try:
-            user = api.get_user(x)
-        except:
-            continue
-        if(user.location!=""):
-            print(user.location)
-            if(user.location in l_ftp.keys()):
-                l_ftp[user.location]+=1
-            else: l_ftp[user.location] = 1
+        fptf.write(x + ", ")
     for y in jxc:
-        print(x)
-        try:
-            user = api.get_user(x)
-        except:
-            continue
-        if(user.location!=""):
-            print(user.location)
-            if(user.location in l_jxc.keys()):
-                l_jxc[user.location]+=1
-            else: l_jxc[user.location] = 1
-    for x in l_ftp.keys():
-        print(x + " " + str(l_ftp[x])) 
-    print("---------------------------------------------------------------------------------------------------------")
-    for x in l_jxc.keys():
-        print(x + " " + str(l_jxc[x])) 
-    print(str(f*100/(f+c)) + " " + str(c*100/(f+c)))
+        jxcf.write(y + ", ")
+
     #print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
 main()
